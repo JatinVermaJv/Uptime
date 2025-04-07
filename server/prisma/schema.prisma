@@ -43,6 +43,7 @@ model PingLog {
   status     Int      // HTTP status code
   responseTime Int    // Response time in milliseconds
   success    Boolean
+  error      String?  // Error message if the ping failed
   createdAt  DateTime @default(now())
   endpointId Int
   endpoint   Endpoint @relation(fields: [endpointId], references: [id])
