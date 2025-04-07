@@ -1,22 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Uptime Monitor - Frontend
+
+This is the frontend application for the Uptime Monitor service, built with Next.js, TypeScript, and Tailwind CSS.
+
+## Project Structure
+
+```
+src/
+├── app/           # Next.js app directory (pages and layouts)
+├── components/    # Reusable UI components
+├── services/      # API services and configurations
+├── styles/        # Global styles and Tailwind configuration
+├── types/         # TypeScript type definitions
+└── utils/         # Utility functions
+```
 
 ## Getting Started
 
-First, run the development server:
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. Create a `.env.local` file in the root directory with the following variables:
+   ```
+   NEXT_PUBLIC_API_URL=http://localhost:3001
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Features
+
+- Modern React with Next.js 14
+- TypeScript for type safety
+- Tailwind CSS for styling
+- Axios for API calls
+- ESLint for code quality
+- Responsive design
+
+## Development Guidelines
+
+- Follow the TypeScript and ESLint configurations
+- Use Tailwind CSS for styling
+- Keep components small and reusable
+- Write tests for new features
+- Document complex logic
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
