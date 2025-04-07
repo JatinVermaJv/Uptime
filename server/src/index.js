@@ -1,10 +1,20 @@
 const express = require("express");
+const cors = require("cors");
 const prisma = require("./db");
 const authRoutes = require("./routes/auth");
 const endpointRoutes = require("./routes/endpoints");
 const scheduler = require("./services/scheduler");
 
 const app = express();
+
+// Configure CORS
+app.use(cors({
+  origin: 'http://localhost:3000', // Allow requests from frontend
+  credentials: true, // Allow credentials (cookies, authorization headers)
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);

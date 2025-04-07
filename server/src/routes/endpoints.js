@@ -1,6 +1,7 @@
 const express = require('express');
 const { authMiddleware } = require('../middleware/auth');
 const prisma = require('../db');
+const axios = require('axios');
 
 const router = express.Router();
 
@@ -70,11 +71,17 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'URL and name are required' });
     }
 
+    // Validate interval (in seconds)
+    const intervalInSeconds = interval || 60; // Default to 60 seconds if not specified
+    if (intervalInSeconds < 10) { // Minimum 10 seconds interval
+      return res.status(400).json({ error: 'Interval must be at least 10 seconds' });
+    }
+
     const endpoint = await prisma.endpoint.create({
       data: {
         url,
         name,
-        interval: interval || 5, // Default to 5 minutes if not specified
+        interval: intervalInSeconds,
         userId: req.user.id
       }
     });
@@ -140,6 +147,14 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Endpoint not found' });
     }
 
+    // First delete all associated ping logs
+    await prisma.pingLog.deleteMany({
+      where: {
+        endpointId: endpointId
+      }
+    });
+
+    // Then delete the endpoint
     await prisma.endpoint.delete({
       where: {
         id: endpointId
@@ -149,7 +164,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Endpoint deleted successfully' });
   } catch (error) {
     console.error('Error deleting endpoint:', error);
-    res.status(500).json({ error: 'Error deleting endpoint' });
+    res.status(500).json({ error: 'Error deleting endpoint: ' + error.message });
   }
 });
 
@@ -170,14 +185,34 @@ router.post('/:id/ping', async (req, res) => {
       return res.status(404).json({ error: 'Endpoint not found' });
     }
 
-    // TODO: Implement actual ping logic here
-    // For now, we'll just create a mock ping log
+    const startTime = Date.now();
+    let status = 0;
+    let success = false;
+    let error = null;
+
+    try {
+      const response = await axios.get(endpoint.url, {
+        timeout: 10000, // 10 second timeout
+        validateStatus: (status) => true // Accept all status codes
+      });
+
+      status = response.status;
+      success = status >= 200 && status < 300;
+    } catch (err) {
+      error = err.message;
+      success = false;
+    }
+
+    const responseTime = Date.now() - startTime;
+
+    // Create ping log
     const pingLog = await prisma.pingLog.create({
       data: {
         endpointId,
-        status: 200,
-        responseTime: 150,
-        success: true
+        status,
+        responseTime,
+        success,
+        error: error || null
       }
     });
 

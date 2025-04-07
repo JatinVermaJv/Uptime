@@ -51,8 +51,16 @@ class Scheduler {
   }
 
   scheduleEndpoint(endpoint) {
-    // Convert minutes to cron expression
-    const cronExpression = `*/${endpoint.interval} * * * *`;
+    // Convert seconds to cron expression
+    // If interval is less than 60 seconds, schedule it every X seconds
+    // If interval is 60 seconds or more, convert to minutes
+    let cronExpression;
+    if (endpoint.interval < 60) {
+      cronExpression = `*/${endpoint.interval} * * * * *`; // Include seconds
+    } else {
+      const minutes = Math.floor(endpoint.interval / 60);
+      cronExpression = `*/${minutes} * * * *`;
+    }
     
     // Create new job
     const job = cron.schedule(cronExpression, async () => {
@@ -61,11 +69,16 @@ class Scheduler {
       } catch (error) {
         console.error(`Error pinging endpoint ${endpoint.id}:`, error);
       }
+    }, {
+      scheduled: true,
+      timezone: "UTC"
     });
 
     // Store the job
     this.jobs.set(endpoint.id, job);
-    console.log(`Scheduled endpoint ${endpoint.id} (${endpoint.url}) to check every ${endpoint.interval} minutes`);
+    const timeUnit = endpoint.interval < 60 ? 'seconds' : 'minutes';
+    const timeValue = endpoint.interval < 60 ? endpoint.interval : Math.floor(endpoint.interval / 60);
+    console.log(`Scheduled endpoint ${endpoint.id} (${endpoint.url}) to check every ${timeValue} ${timeUnit}`);
   }
 
   async pingEndpoint(endpoint) {
@@ -85,6 +98,7 @@ class Scheduler {
     } catch (err) {
       error = err.message;
       success = false;
+      status = 0; // Connection failed
     }
 
     const responseTime = Date.now() - startTime;
@@ -100,7 +114,11 @@ class Scheduler {
       }
     });
 
-    console.log(`Pinged ${endpoint.url}: ${success ? 'Yes' : 'No'} (${responseTime}ms)`);
+    // More detailed logging
+    const statusText = success ? 'UP' : 'DOWN';
+    const errorText = error ? ` (Error: ${error})` : '';
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] Endpoint "${endpoint.name}" (${endpoint.url}): ${statusText} - ${status} - ${responseTime}ms${errorText}`);
   }
 
   stop() {
