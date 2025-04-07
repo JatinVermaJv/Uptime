@@ -1,11 +1,13 @@
 const express = require("express");
 const prisma = require("./db");
 const authRoutes = require("./routes/auth");
+const endpointRoutes = require("./routes/endpoints");
 
 const app = express();
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/endpoints', endpointRoutes);
 
 app.get("/", async (req, res) => {
   try {
@@ -26,7 +28,7 @@ app.get("/", async (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ 
-    error: "Danger",
+    error: "Danger something went wrong",
     details: err.message 
   });
 });
