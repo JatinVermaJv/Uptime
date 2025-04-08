@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, AlertCircle, CheckCircle2, XCircle, ArrowUp, ArrowDown, Clock } from 'lucide-react';
+import { Plus, ArrowUp, ArrowDown, Clock } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -23,7 +23,7 @@ export default function DashboardPage() {
       return 'unknown';
     }
     const latestPing = endpoint.pingLogs[0];
-    return latestPing.success ? 'up' : 'down';
+    return latestPing.status;
   };
 
   const fetchEndpoints = useCallback(async () => {

@@ -26,7 +26,7 @@ export default function Home() {
         <section className="container mx-auto px-6 py-16 md:py-24">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Monitor Your Website's Uptime
+              Monitor Your Website&apos;s Uptime
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
               Get instant alerts when your website goes down. Monitor multiple endpoints,
@@ -70,7 +70,7 @@ export default function Home() {
                 <Clock className="h-12 w-12 text-primary mx-auto mb-4" />
                 <h3 className="text-xl font-semibold mb-2">Uptime History</h3>
                 <p className="text-muted-foreground">
-                  Track your service's uptime history and performance metrics over time.
+                  Track your service&apos;s uptime history and performance metrics over time.
                 </p>
               </div>
             </div>
