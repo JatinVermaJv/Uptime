@@ -1,106 +1,245 @@
 import axios from 'axios';
-import { Endpoint } from '@/types';
+import { Endpoint, User, ApiResponse } from '@/types';
+import { useRouter } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Define custom types for better type safety
+type ApiError = {
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+  config?: {
+    headers?: Record<string, string>;
+    _retry?: boolean;
+    url?: string;
+    method?: string;
+  };
+};
 
-interface ErrorResponse {
-  message: string;
-  statusCode: number;
-}
+type RefreshResponse = {
+  data: {
+    token: string;
+  };
+};
 
-interface RequestConfig {
+type ApiRequestConfig = {
   headers?: Record<string, string>;
-  params?: Record<string, string | number>;
-}
+  _retry?: boolean;
+  url: string;
+  method: string;
+};
 
+const API_BASE_URL = 'https://uptime-tj3r.onrender.com';
+
+// Create axios instance with default config
 const api = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true, // Important for handling cookies
 });
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Request interceptor for API calls
+api.interceptors.request.use(
+  (config) => {
+    console.log('Request:', {
+      url: config.url,
+      method: config.method,
+      data: config.data,
+      headers: config.headers
+    });
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    console.error('Request Error:', error);
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
+// Response interceptor for API calls
+api.interceptors.response.use(
+  (response) => {
+    console.log('Response:', {
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // If the error is 401 and we haven't retried the request
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      try {
+        // Try to refresh the token
+        const response = await api.post<RefreshResponse>('/api/auth/refresh');
+        const { token } = response.data.data;
+        
+        // Store the new token
+        localStorage.setItem('token', token);
+        
+        // Retry the original request with the new token
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // If refresh fails, clear auth data and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    console.error('Response Error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message
+    });
+    return Promise.reject(error);
+  }
+);
+
+// API endpoints
 export const auth = {
-  login: async (email: string, password: string) => {
-    try {
-      const response = await api.post('/auth/login', { email, password });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
+  login: (data: { email: string; password: string }) =>
+    api.post('/api/auth/login', data),
+  register: (data: { email: string; password: string; name: string }) =>
+    api.post('/api/auth/register', data),
+  logout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    return api.post('/api/auth/logout');
   },
-
-  register: async (email: string, password: string, name: string) => {
-    try {
-      const response = await api.post('/auth/register', { email, password, name });
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
+  refresh: () => api.post('/api/auth/refresh'),
 };
 
 export const endpoints = {
-  getAll: async () => {
+  getAll: () => api.get('/api/endpoints'),
+  getOne: (id: string) => api.get(`/api/endpoints/${id}`),
+  create: async (data: { name: string; url: string; interval: number }) => {
     try {
-      const response = await api.get<{ data: Endpoint[] }>('/endpoints');
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
+      // Log the incoming data
+      console.log('Creating endpoint with data:', data);
 
-  getById: async (id: string) => {
-    try {
-      const response = await api.get<{ data: Endpoint }>(`/endpoints/${id}`);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
+      // Ensure URL is properly formatted
+      let url = data.url.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `https://${url}`;
+      }
+      
+      // Ensure interval is a number between 1 and 60
+      const interval = Math.min(Math.max(Number(data.interval), 1), 60);
+      
+      const payload = {
+        name: data.name.trim(),
+        url: url,
+        interval: interval
+      };
 
-  create: async (data: Omit<Endpoint, 'id'>) => {
-    try {
-      const response = await api.post<{ data: Endpoint }>('/endpoints', data);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
+      // Log the final payload
+      console.log('Sending payload:', payload);
 
-  update: async (id: string, data: Partial<Endpoint>) => {
-    try {
-      const response = await api.patch<{ data: Endpoint }>(`/endpoints/${id}`, data);
-      return response.data;
-    } catch (error) {
-      throw handleError(error);
-    }
-  },
+      // Log the request configuration
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      };
+      console.log('Request config:', config);
 
-  delete: async (id: string) => {
-    try {
-      await api.delete(`/endpoints/${id}`);
-    } catch (error) {
-      throw handleError(error);
+      const response = await api.post('/api/endpoints', payload, config);
+      console.log('Response:', response.data);
+      return response;
+    } catch (error: any) {
+      console.error('Endpoint creation error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          data: error.config?.data,
+          headers: error.config?.headers
+        }
+      });
+      throw error;
     }
   },
+  update: (id: string, data: { name?: string; url?: string; interval?: number }) => {
+    const payload: any = {};
+    
+    if (data.name) payload.name = data.name.trim();
+    if (data.url) {
+      let url = data.url.trim();
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `https://${url}`;
+      }
+      payload.url = url;
+    }
+    if (typeof data.interval === 'number') {
+      payload.interval = Math.min(Math.max(Number(data.interval), 1), 60);
+    }
+    
+    return api.put(`/api/endpoints/${id}`, payload);
+  },
+  delete: (id: string) => api.delete(`/api/endpoints/${id}`),
+  getLogs: (id: string, params?: { limit?: number; offset?: number }) =>
+    api.get(`/api/endpoints/${id}/logs`, { params }),
 };
 
-function handleError(error: unknown): Error {
-  if (axios.isAxiosError(error) && error.response?.data) {
-    const errorResponse = error.response.data as ErrorResponse;
-    return new Error(errorResponse.message || 'An unexpected error occurred');
-  }
-  return new Error('An unexpected error occurred');
-}
+export const settings = {
+  get: () => api.get('/settings'),
+  update: (data: { notifications: boolean; emailAlerts: boolean; refreshInterval: number }) =>
+    api.put('/settings', data),
+};
 
-export default {
-  auth,
-  endpoints,
-}; 
+// Error handling utility
+export const handleApiError = (error: any) => {
+  console.error('API Error:', error);
+  if (error.response) {
+    // Log detailed error information
+    console.error('Error Details:', {
+      status: error.response.status,
+      data: error.response.data,
+      headers: error.response.headers,
+      config: {
+        url: error.config?.url,
+        method: error.config?.method,
+        data: error.config?.data
+      }
+    });
+
+    // Return appropriate error message
+    if (error.response.status === 400) {
+      return error.response.data?.message || 'Invalid request. Please check your input.';
+    } else if (error.response.status === 401) {
+      return 'Please log in to continue.';
+    } else if (error.response.status === 403) {
+      return 'You do not have permission to perform this action.';
+    } else if (error.response.status === 404) {
+      return 'The requested resource was not found.';
+    }
+    return error.response.data?.message || 'An error occurred';
+  } else if (error.request) {
+    console.error('Request Error:', error.request);
+    return 'No response from server. Please check your internet connection.';
+  } else {
+    console.error('Error:', error.message);
+    return error.message || 'An unexpected error occurred';
+  }
+};
+
+export default api; 

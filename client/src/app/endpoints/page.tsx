@@ -2,20 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/services/api';
+import { endpoints as endpointsApi, handleApiError } from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Search } from 'lucide-react';
-import { Endpoint } from '@/types';
+import { Endpoint, ApiResponse } from '@/types';
 import EndpointCard from '@/components/ui/EndpointCard';
 
 export default function EndpointsPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,8 +24,6 @@ export default function EndpointsPage() {
     url: '',
     interval: 1
   });
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedEndpoint, setSelectedEndpoint] = useState<Endpoint | null>(null);
 
   const resetForm = () => {
     setFormData({
@@ -38,13 +36,15 @@ export default function EndpointsPage() {
 
   const fetchEndpoints = async () => {
     try {
-      setIsLoading(true);
-      const response = await api.endpoints.getAll();
-      setEndpoints(response.data);
-    } catch (err) {
-      toast.error('Failed to fetch endpoints');
+      const response = await endpointsApi.getAll();
+      const data = (response as ApiResponse<Endpoint[]>).data;
+      setEndpoints(data);
+    } catch (error) {
+      console.error('Error fetching endpoints:', error);
+      const errorMessage = handleApiError(error);
+      toast.error(errorMessage);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -56,58 +56,60 @@ export default function EndpointsPage() {
     e.preventDefault();
     
     try {
+      // Trim the values first
       const name = formData.name.trim();
       const url = formData.url.trim();
       const interval = Number(formData.interval);
 
+      // Validate name
       if (!name) {
         toast.error('Name is required');
         return;
       }
 
+      // Validate URL format
       let validUrl: URL;
       try {
         validUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
         if (!validUrl.protocol || !validUrl.host) {
           throw new Error('Invalid URL');
         }
-      } catch {
+      } catch (error) {
         toast.error('Please enter a valid URL (e.g., https://example.com)');
         return;
       }
 
+      // Convert minutes to seconds and validate
       const intervalInSeconds = interval * 60;
       if (isNaN(intervalInSeconds) || intervalInSeconds < 10) {
         toast.error('Interval must be at least 10 seconds');
         return;
       }
 
-      const payload: Omit<Endpoint, 'id'> = {
+      const payload = {
         name,
         url: validUrl.href,
-        interval: intervalInSeconds,
-        status: 'unknown' as const,
-        userId: '',
-        pingLogs: []
+        interval: intervalInSeconds
       };
 
+      console.log('Submitting endpoint with payload:', payload);
+
       if (editingEndpoint) {
-        await api.endpoints.update(editingEndpoint.id, {
-          name,
-          url: validUrl.href,
-          interval: intervalInSeconds
-        });
+        const response = await endpointsApi.update(editingEndpoint.id, payload);
+        console.log('Update response:', response.data);
         toast.success('Endpoint updated successfully');
       } else {
-        await api.endpoints.create(payload);
+        const response = await endpointsApi.create(payload);
+        console.log('Create response:', response.data);
         toast.success('Endpoint created successfully');
       }
       setIsDialogOpen(false);
       resetForm();
       fetchEndpoints();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to save endpoint';
-      toast.error(message);
+    } catch (error: any) {
+      console.error('Error saving endpoint:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to save endpoint';
+      toast.error(errorMessage);
     }
   };
 
@@ -116,18 +118,22 @@ export default function EndpointsPage() {
     setFormData({
       name: endpoint.name,
       url: endpoint.url,
-      interval: Math.floor(endpoint.interval / 60)
+      interval: Math.floor(endpoint.interval / 60) // Convert seconds to minutes
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (endpoint: Endpoint) => {
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this endpoint?')) return;
+    
     try {
-      await api.endpoints.delete(endpoint.id);
+      await endpointsApi.delete(id);
       toast.success('Endpoint deleted successfully');
       fetchEndpoints();
-    } catch (err) {
-      toast.error('Failed to delete endpoint');
+    } catch (error) {
+      console.error('Error deleting endpoint:', error);
+      const errorMessage = handleApiError(error);
+      toast.error(errorMessage);
     }
   };
 
@@ -136,7 +142,7 @@ export default function EndpointsPage() {
     endpoint.url.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="p-8">
         <div className="text-center text-muted-foreground">Loading...</div>
@@ -187,7 +193,7 @@ export default function EndpointsPage() {
               key={endpoint.id}
               endpoint={endpoint}
               onEdit={() => handleEdit(endpoint)}
-              onDelete={() => handleDelete(endpoint)}
+              onDelete={() => handleDelete(endpoint.id)}
             />
           ))}
         </div>

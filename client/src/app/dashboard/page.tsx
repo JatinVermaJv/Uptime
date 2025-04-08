@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import api from '@/services/api';
+import { endpoints as endpointsApi, handleApiError } from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowUpIcon, ArrowDownIcon, Activity, Clock, Plus } from 'lucide-react';
-import { Endpoint } from '@/types';
+import { Endpoint, ApiResponse } from '@/types';
 import Navigation from '@/components/ui/Navigation';
-import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -18,10 +17,13 @@ export default function DashboardPage() {
 
   const fetchEndpoints = async () => {
     try {
-      const response = await api.endpoints.getAll();
-      setEndpointsList(response.data);
-    } catch (err) {
-      toast.error('Failed to fetch endpoints');
+      const response = await endpointsApi.getAll();
+      const data = (response as ApiResponse<Endpoint[]>).data;
+      setEndpointsList(data);
+    } catch (error) {
+      console.error('Error fetching endpoints:', error);
+      const errorMessage = handleApiError(error);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -36,6 +38,17 @@ export default function DashboardPage() {
   const upEndpoints = endpointsList.filter(endpoint => endpoint.status === 'up').length;
   const downEndpoints = endpointsList.filter(endpoint => endpoint.status === 'down').length;
   const unknownEndpoints = endpointsList.filter(endpoint => endpoint.status === 'unknown').length;
+
+  const getStatusColor = (status: 'up' | 'down' | 'unknown') => {
+    switch (status) {
+      case 'up':
+        return 'text-green-500';
+      case 'down':
+        return 'text-red-500';
+      default:
+        return 'text-yellow-500';
+    }
+  };
 
   if (loading) {
     return (
@@ -138,12 +151,13 @@ export default function DashboardPage() {
                           <h3 className="font-semibold">{endpoint.name}</h3>
                           <p className="text-sm text-muted-foreground">{endpoint.url}</p>
                         </div>
-                        <div className={cn(
-                          'px-3 py-1 rounded-full text-sm',
-                          endpoint.status === 'up' && 'bg-green-500/10 text-green-500',
-                          endpoint.status === 'down' && 'bg-red-500/10 text-red-500',
-                          endpoint.status === 'unknown' && 'bg-yellow-500/10 text-yellow-500'
-                        )}>
+                        <div className={`px-3 py-1 rounded-full text-sm ${
+                          endpoint.status === 'up' 
+                            ? 'bg-green-500/10 text-green-500' 
+                            : endpoint.status === 'down'
+                            ? 'bg-red-500/10 text-red-500'
+                            : 'bg-yellow-500/10 text-yellow-500'
+                        }`}>
                           {endpoint.status === 'up' ? 'Up' : endpoint.status === 'down' ? 'Down' : 'Unknown'}
                         </div>
                       </div>
