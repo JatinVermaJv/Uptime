@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Endpoint, User, ApiResponse } from '@/types';
 
 // Define custom types for better type safety
 type ApiError = {
@@ -30,9 +31,11 @@ type ApiRequestConfig = {
   method: string;
 };
 
+const API_BASE_URL = 'https://uptime-tj3r.onrender.com/api';
+
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -114,23 +117,23 @@ api.interceptors.response.use(
 // API endpoints
 export const auth = {
   login: (data: { email: string; password: string }) =>
-    api.post('/api/auth/login', data),
+    api.post('/auth/login', data),
   register: (data: { email: string; password: string; name: string }) =>
-    api.post('/api/auth/register', data),
-  logout: () => api.post('/api/auth/logout'),
-  refresh: () => api.post('/api/auth/refresh'),
+    api.post('/auth/register', data),
+  logout: () => api.post('/auth/logout'),
+  refresh: () => api.post('/auth/refresh'),
 };
 
 export const endpoints = {
-  getAll: () => api.get('/api/endpoints'),
-  getOne: (id: string) => api.get(`/api/endpoints/${id}`),
+  getAll: () => api.get('/endpoints'),
+  getOne: (id: string) => api.get(`/endpoints/${id}`),
   create: (data: { name: string; url: string; interval: number }) =>
-    api.post('/api/endpoints', data),
+    api.post('/endpoints', data),
   update: (id: string, data: { name?: string; url?: string; interval?: number }) =>
-    api.put(`/api/endpoints/${id}`, data),
-  delete: (id: string) => api.delete(`/api/endpoints/${id}`),
+    api.put(`/endpoints/${id}`, data),
+  delete: (id: string) => api.delete(`/endpoints/${id}`),
   getLogs: (id: string, params?: { limit?: number; offset?: number }) =>
-    api.get(`/api/endpoints/${id}/logs`, { params }),
+    api.get(`/endpoints/${id}/logs`, { params }),
 };
 
 export const settings = {
