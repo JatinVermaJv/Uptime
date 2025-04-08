@@ -190,6 +190,8 @@ router.post('/:id/ping', async (req, res) => {
     let success = false;
     let error = null;
 
+    console.log(`[${new Date().toISOString()}] Starting ping for endpoint: ${endpoint.name} (${endpoint.url})`);
+
     try {
       const response = await axios.get(endpoint.url, {
         timeout: 10000, // 10 second timeout
@@ -198,9 +200,11 @@ router.post('/:id/ping', async (req, res) => {
 
       status = response.status;
       success = status >= 200 && status < 300;
+      console.log(`[${new Date().toISOString()}] Ping successful for ${endpoint.name}: Status ${status}, Response time: ${Date.now() - startTime}ms`);
     } catch (err) {
       error = err.message;
       success = false;
+      console.error(`[${new Date().toISOString()}] Ping failed for ${endpoint.name}: ${err.message}`);
     }
 
     const responseTime = Date.now() - startTime;
@@ -216,9 +220,20 @@ router.post('/:id/ping', async (req, res) => {
       }
     });
 
+    // Update endpoint status
+    await prisma.endpoint.update({
+      where: { id: endpointId },
+      data: {
+        status: success ? 'up' : 'down',
+        lastChecked: new Date()
+      }
+    });
+
+    console.log(`[${new Date().toISOString()}] Created ping log for ${endpoint.name}: ID ${pingLog.id}, Status ${status}, Response time ${responseTime}ms`);
+
     res.json(pingLog);
   } catch (error) {
-    console.error('Error pinging endpoint:', error);
+    console.error(`[${new Date().toISOString()}] Error pinging endpoint:`, error);
     res.status(500).json({ error: 'Error pinging endpoint' });
   }
 });

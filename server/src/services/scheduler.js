@@ -87,6 +87,8 @@ class Scheduler {
     let success = false;
     let error = null;
 
+    console.log(`[${new Date().toISOString()}] Starting scheduled ping for endpoint: ${endpoint.name} (${endpoint.url})`);
+
     try {
       const response = await axios.get(endpoint.url, {
         timeout: 10000, // 10 second timeout
@@ -95,10 +97,11 @@ class Scheduler {
 
       status = response.status;
       success = status >= 200 && status < 300;
+      console.log(`[${new Date().toISOString()}] Scheduled ping successful for ${endpoint.name}: Status ${status}, Response time: ${Date.now() - startTime}ms`);
     } catch (err) {
       error = err.message;
       success = false;
-      status = 0; // Connection failed
+      console.error(`[${new Date().toISOString()}] Scheduled ping failed for ${endpoint.name}: ${err.message}`);
     }
 
     const responseTime = Date.now() - startTime;
@@ -114,11 +117,16 @@ class Scheduler {
       }
     });
 
-    // More detailed logging
-    const statusText = success ? 'UP' : 'DOWN';
-    const errorText = error ? ` (Error: ${error})` : '';
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Endpoint "${endpoint.name}" (${endpoint.url}): ${statusText} - ${status} - ${responseTime}ms${errorText}`);
+    // Update endpoint status
+    await prisma.endpoint.update({
+      where: { id: endpoint.id },
+      data: {
+        status: success ? 'up' : 'down',
+        lastChecked: new Date()
+      }
+    });
+
+    console.log(`[${new Date().toISOString()}] Updated endpoint status for ${endpoint.name}: ${success ? 'up' : 'down'}`);
   }
 
   stop() {
