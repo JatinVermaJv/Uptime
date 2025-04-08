@@ -106,27 +106,34 @@ class Scheduler {
 
     const responseTime = Date.now() - startTime;
 
-    // Create ping log
-    await prisma.pingLog.create({
-      data: {
-        endpointId: endpoint.id,
-        status,
-        responseTime,
-        success,
-        error: error || null
-      }
-    });
+    try {
+      // Create ping log
+      await prisma.pingLog.create({
+        data: {
+          endpointId: endpoint.id,
+          status,
+          responseTime,
+          success,
+          error: error || null
+        }
+      });
 
-    // Update endpoint status
-    await prisma.endpoint.update({
-      where: { id: endpoint.id },
-      data: {
-        status: success ? 'up' : 'down',
-        lastChecked: new Date()
+      // Try to update endpoint status, but don't fail if the field doesn't exist yet
+      try {
+        await prisma.endpoint.update({
+          where: { id: endpoint.id },
+          data: {
+            status: success ? 'up' : 'down',
+            lastChecked: new Date()
+          }
+        });
+        console.log(`[${new Date().toISOString()}] Updated endpoint status for ${endpoint.name}: ${success ? 'up' : 'down'}`);
+      } catch (updateError) {
+        console.warn(`[${new Date().toISOString()}] Could not update endpoint status: ${updateError.message}`);
       }
-    });
-
-    console.log(`[${new Date().toISOString()}] Updated endpoint status for ${endpoint.name}: ${success ? 'up' : 'down'}`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] Error creating ping log: ${error.message}`);
+    }
   }
 
   stop() {
