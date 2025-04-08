@@ -1,106 +1,77 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import Layout from '@/components/layout/Layout';
-import EndpointCard from '@/components/ui/EndpointCard';
-import { Endpoint, ApiResponse } from '@/types';
-import { endpoints, handleApiError } from '@/services/api';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { endpoints as endpointsApi, handleApiError } from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, ArrowUp, ArrowDown, Clock } from 'lucide-react';
+import { ArrowUpIcon, ArrowDownIcon, Activity, Clock, Plus } from 'lucide-react';
+import { Endpoint, ApiResponse } from '@/types';
+import Navigation from '@/components/ui/Navigation';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [endpointsList, setEndpointsList] = useState<Endpoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Function to determine endpoint status from its latest ping log
-  const getEndpointStatus = (endpoint: Endpoint): 'up' | 'down' | 'unknown' => {
-    if (!endpoint.pingLogs || endpoint.pingLogs.length === 0) {
-      return 'unknown';
-    }
-    const latestPing = endpoint.pingLogs[0];
-    return latestPing.status;
-  };
-
-  const fetchEndpoints = useCallback(async () => {
+  const fetchEndpoints = async () => {
     try {
-      setLoading(true);
-      const response = await endpoints.getAll();
+      const response = await endpointsApi.getAll();
       const data = (response as ApiResponse<Endpoint[]>).data;
-      // Update endpoints with their current status based on ping logs
-      const updatedEndpoints = data.map(endpoint => ({
-        ...endpoint,
-        status: getEndpointStatus(endpoint),
-        lastChecked: endpoint.pingLogs?.[0]?.createdAt
-      }));
-      setEndpointsList(updatedEndpoints);
-      setError(null);
-    } catch (err) {
-      const errorMessage = handleApiError(err);
-      setError(errorMessage);
+      setEndpointsList(data);
+    } catch (error) {
+      console.error('Error fetching endpoints:', error);
+      const errorMessage = handleApiError(error);
       toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchEndpoints();
-    const interval = setInterval(fetchEndpoints, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, [fetchEndpoints]);
-
-  const handleEdit = (endpoint: Endpoint) => {
-    router.push(`/endpoints/${endpoint.id}`);
-  };
-
-  const handleDelete = async (endpointId: string) => {
-    try {
-      await endpoints.delete(endpointId);
-      toast.success('Endpoint deleted successfully');
-      fetchEndpoints();
-    } catch (err) {
-      const errorMessage = handleApiError(err);
-      toast.error(errorMessage);
-    }
-  };
-
-  const handleAdd = () => {
-    router.push('/endpoints/new');
-  };
+  }, []);
 
   // Calculate statistics
   const totalEndpoints = endpointsList.length;
-  const upEndpoints = endpointsList.filter(e => e.status === 'up').length;
-  const downEndpoints = endpointsList.filter(e => e.status === 'down').length;
-  const uptimePercentage = totalEndpoints > 0 ? (upEndpoints / totalEndpoints) * 100 : 0;
+  const upEndpoints = endpointsList.filter(endpoint => endpoint.status === 'up').length;
+  const downEndpoints = endpointsList.filter(endpoint => endpoint.status === 'down').length;
+  const unknownEndpoints = endpointsList.filter(endpoint => endpoint.status === 'unknown').length;
 
-  const stats = {
-    total: totalEndpoints,
-    up: upEndpoints,
-    down: downEndpoints,
-    uptime: uptimePercentage.toFixed(2),
+  const getStatusColor = (status: 'up' | 'down' | 'unknown') => {
+    switch (status) {
+      case 'up':
+        return 'text-green-500';
+      case 'down':
+        return 'text-red-500';
+      default:
+        return 'text-yellow-500';
+    }
   };
 
   if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return (
+      <div>
+        <Navigation />
+        <div className="p-8">
+          <div className="text-center text-muted-foreground">Loading...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <Button onClick={handleAdd}>
-            <Plus className="mr-2 h-4 w-4" />
+    <div>
+      <Navigation />
+      <div className="p-8 space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">Monitor your endpoints and track their status</p>
+          </div>
+          <Button onClick={() => router.push('/endpoints')}>
+            <Plus className="w-4 h-4 mr-2" />
             Add Endpoint
           </Button>
         </div>
@@ -109,91 +80,98 @@ export default function DashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Endpoints</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-2xl font-bold">{totalEndpoints}</div>
+              <p className="text-xs text-muted-foreground">
+                Total monitored endpoints
+              </p>
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Up</CardTitle>
-              <ArrowUp className="h-4 w-4 text-green-500" />
+              <ArrowUpIcon className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.up}</div>
+              <div className="text-2xl font-bold text-green-500">{upEndpoints}</div>
+              <p className="text-xs text-muted-foreground">
+                Endpoints running normally
+              </p>
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Down</CardTitle>
-              <ArrowDown className="h-4 w-4 text-red-500" />
+              <ArrowDownIcon className="h-4 w-4 text-red-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.down}</div>
+              <div className="text-2xl font-bold text-red-500">{downEndpoints}</div>
+              <p className="text-xs text-muted-foreground">
+                Endpoints experiencing issues
+              </p>
             </CardContent>
           </Card>
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Uptime</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Unknown</CardTitle>
+              <Clock className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.uptime}%</div>
+              <div className="text-2xl font-bold text-yellow-500">{unknownEndpoints}</div>
+              <p className="text-xs text-muted-foreground">
+                Endpoints pending first check
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-900 text-white px-4 py-2 rounded-md">
-            {error}
-          </div>
-        )}
-
-        {/* Endpoints Grid */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Your Endpoints</h2>
-          {endpointsList.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No endpoints found. Add your first endpoint to get started.</p>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {endpointsList.map((endpoint) => (
-                <Card key={endpoint.id}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>{endpoint.name}</span>
-                      <span className={`text-sm font-medium ${
-                        endpoint.status === 'up' ? 'text-green-500' : 'text-red-500'
-                      }`}>
-                        {endpoint.status}
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">{endpoint.url}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Last checked: {endpoint.lastChecked ? new Date(endpoint.lastChecked).toLocaleString() : 'Never'}
-                      </p>
-                      <div className="flex space-x-2">
-                        <Button variant="outline" size="sm" onClick={() => handleEdit(endpoint)}>
-                          Edit
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => handleDelete(endpoint.id)}>
-                          Delete
-                        </Button>
+        <div className="rounded-lg border bg-card">
+          <div className="p-6">
+            <h2 className="text-lg font-semibold mb-4">Recent Status</h2>
+            {endpointsList.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No endpoints found</p>
+                <Button onClick={() => router.push('/endpoints')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add your first endpoint
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {endpointsList.map((endpoint) => (
+                  <Card key={endpoint.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => router.push(`/endpoints/${endpoint.id}`)}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">{endpoint.name}</h3>
+                          <p className="text-sm text-muted-foreground">{endpoint.url}</p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-sm ${
+                          endpoint.status === 'up' 
+                            ? 'bg-green-500/10 text-green-500' 
+                            : endpoint.status === 'down'
+                            ? 'bg-red-500/10 text-red-500'
+                            : 'bg-yellow-500/10 text-yellow-500'
+                        }`}>
+                          {endpoint.status === 'up' ? 'Up' : endpoint.status === 'down' ? 'Down' : 'Unknown'}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        Last checked: {endpoint.lastChecked ? new Date(endpoint.lastChecked).toLocaleString() : 'Never'}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 } 

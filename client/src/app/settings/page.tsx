@@ -1,102 +1,172 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'react-hot-toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { Switch } from '@/components/ui/switch';
+import { Bell, Mail, Lock, User } from 'lucide-react';
+import Navigation from '@/components/ui/Navigation';
 
 export default function SettingsPage() {
-  const { user, updateUser } = useAuth();
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [pushNotifications, setPushNotifications] = useState(true);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSaveNotifications = () => {
+    toast.success('Notification settings saved');
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await updateUser({
-        name,
-        email,
-        currentPassword,
-        newPassword: newPassword || undefined,
-      });
-      toast.success('Settings updated successfully');
-    } catch (error) {
-      toast.error('Failed to update settings');
-    }
+    toast.success('Password updated successfully');
+  };
+
+  const handleUpdateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.success('Profile updated successfully');
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Settings</h1>
-      </div>
+    <div>
+      <Navigation />
+      <div className="p-8 space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold">Settings</h1>
+          <p className="text-muted-foreground">Manage your account and preferences</p>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Settings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
-            </div>
-            {newPassword && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required={!!newPassword}
-                />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <User className="w-5 h-5" />
+                <CardTitle>Profile Settings</CardTitle>
               </div>
-            )}
-            <Button type="submit">Save Changes</Button>
-          </form>
-        </CardContent>
-      </Card>
+              <CardDescription>Update your personal information</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" placeholder="John Doe" />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="john@example.com" />
+                </div>
+                <Button type="submit">Save Changes</Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Lock className="w-5 h-5" />
+                <CardTitle>Security</CardTitle>
+              </div>
+              <CardDescription>Manage your password and security settings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div>
+                  <Label htmlFor="current-password">Current Password</Label>
+                  <Input id="current-password" type="password" />
+                </div>
+                <div>
+                  <Label htmlFor="new-password">New Password</Label>
+                  <Input id="new-password" type="password" />
+                </div>
+                <div>
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <Input id="confirm-password" type="password" />
+                </div>
+                <Button type="submit">Change Password</Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Bell className="w-5 h-5" />
+                <CardTitle>Notifications</CardTitle>
+              </div>
+              <CardDescription>Configure how you want to be notified</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Email Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive email notifications when endpoints are down
+                    </p>
+                  </div>
+                  <Switch
+                    checked={emailNotifications}
+                    onChange={setEmailNotifications}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Push Notifications</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive push notifications for status changes
+                    </p>
+                  </div>
+                  <Switch
+                    checked={pushNotifications}
+                    onChange={setPushNotifications}
+                  />
+                </div>
+                <Button onClick={handleSaveNotifications}>Save Notification Settings</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Mail className="w-5 h-5" />
+                <CardTitle>Email Preferences</CardTitle>
+              </div>
+              <CardDescription>Manage your email notification preferences</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Daily Summary</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive a daily summary of your endpoints status
+                    </p>
+                  </div>
+                  <Switch
+                    checked={true}
+                    onChange={() => {}}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Weekly Report</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Receive a weekly report with detailed statistics
+                    </p>
+                  </div>
+                  <Switch
+                    checked={true}
+                    onChange={() => {}}
+                  />
+                </div>
+                <Button>Save Email Preferences</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 } 

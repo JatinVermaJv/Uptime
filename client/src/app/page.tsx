@@ -1,105 +1,104 @@
-import Link from 'next/link';
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Shield, Activity, Bell, Clock } from 'lucide-react';
+import { Activity, Bell, Clock, Shield } from 'lucide-react';
 
-export default function Home() {
+export default function LandingPage() {
+  const router = useRouter();
+
+  const features = [
+    {
+      icon: Activity,
+      title: 'Real-time Monitoring',
+      description: 'Monitor your endpoints in real-time with instant notifications when issues arise.'
+    },
+    {
+      icon: Clock,
+      title: 'Flexible Intervals',
+      description: 'Set custom monitoring intervals from 10 seconds to 60 minutes.'
+    },
+    {
+      icon: Bell,
+      title: 'Smart Notifications',
+      description: 'Get notified through email or push notifications when your endpoints are down.'
+    },
+    {
+      icon: Shield,
+      title: 'Reliable Service',
+      description: 'Trust in our robust monitoring system to keep your services running smoothly.'
+    }
+  ];
+
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Navigation */}
-      <nav className="flex items-center justify-between p-6 border-b">
-        <div className="flex items-center space-x-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">Uptime Monitor</span>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Link href="/login">
-            <Button variant="ghost">Sign In</Button>
-          </Link>
-          <Link href="/register">
-            <Button>Get Started</Button>
-          </Link>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <main className="flex-1">
-        <section className="container mx-auto px-6 py-16 md:py-24">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Monitor Your Website&apos;s Uptime
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Get instant alerts when your website goes down. Monitor multiple endpoints,
-              track response times, and ensure your services are always available.
-            </p>
-            <div className="flex justify-center space-x-4">
-              <Link href="/register">
-                <Button size="lg">
-                  Start Monitoring
-                  <ArrowRight className="ml-2 h-4 w-4" />
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-white/10 bg-grid-small" />
+        <div className="relative pt-20 pb-24 px-6 sm:pt-32 sm:px-8 md:px-12 lg:px-20">
+          <div className="mx-auto max-w-7xl">
+            <div className="text-center space-y-8">
+              <h1 className="text-4xl font-bold sm:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/50">
+                Monitor Your Endpoints with Confidence
+              </h1>
+              <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+                Keep track of your services with real-time monitoring, instant notifications,
+                and detailed analytics. Never miss a downtime again.
+              </p>
+              <div className="flex justify-center gap-4">
+                <Button size="lg" onClick={() => router.push('/register')}>
+                  Get Started
                 </Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="outline" size="lg">
+                <Button size="lg" variant="outline" onClick={() => router.push('/login')}>
                   Sign In
                 </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="bg-muted py-16">
-          <div className="container mx-auto px-6">
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center p-6">
-                <Activity className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Real-time Monitoring</h3>
-                <p className="text-muted-foreground">
-                  Get instant notifications when your services go down or experience issues.
-                </p>
-              </div>
-              <div className="text-center p-6">
-                <Bell className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Smart Alerts</h3>
-                <p className="text-muted-foreground">
-                  Receive alerts via email, SMS, or webhook when issues are detected.
-                </p>
-              </div>
-              <div className="text-center p-6">
-                <Clock className="h-12 w-12 text-primary mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Uptime History</h3>
-                <p className="text-muted-foreground">
-                  Track your service&apos;s uptime history and performance metrics over time.
-                </p>
               </div>
             </div>
           </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-16">
-          <div className="container mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Join thousands of businesses monitoring their services with Uptime Monitor.
-            </p>
-            <Link href="/register">
-              <Button size="lg">
-                Create Free Account
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t py-6">
-        <div className="container mx-auto px-6 text-center text-muted-foreground">
-          <p>© {new Date().getFullYear()} Uptime Monitor. All rights reserved.</p>
         </div>
-      </footer>
+      </div>
+
+      {/* Features Section */}
+      <div className="py-24 px-6 sm:px-8 md:px-12 lg:px-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold">Why Choose Our Service?</h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Everything you need to ensure your services are running smoothly
+            </p>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="relative group rounded-lg border p-6 hover:border-primary/50 transition-colors"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <Icon className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="mt-4 font-semibold">{feature.title}</h3>
+                  <p className="mt-2 text-muted-foreground">{feature.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="py-24 px-6 sm:px-8 md:px-12 lg:px-20 bg-primary/5">
+        <div className="mx-auto max-w-7xl text-center">
+          <h2 className="text-3xl font-bold">Ready to Get Started?</h2>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Join thousands of users who trust our service for their monitoring needs.
+          </p>
+          <Button size="lg" className="mt-8" onClick={() => router.push('/register')}>
+            Start Monitoring Now
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
