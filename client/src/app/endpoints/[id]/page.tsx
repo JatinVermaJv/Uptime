@@ -6,8 +6,7 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Edit2, Trash2 } from 'lucide-react';
-import { Endpoint, ApiResponse, PingLog } from '@/types';
+import { Endpoint } from '@/types';
 import Navigation from '@/components/ui/Navigation';
 
 export default function EndpointDetailPage() {

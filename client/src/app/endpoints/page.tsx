@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { endpoints as endpointsApi, handleApiError } from '@/services/api';
+import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, Search } from 'lucide-react';
-import { Endpoint, ApiResponse } from '@/types';
+import { Endpoint } from '@/types';
 import EndpointCard from '@/components/ui/EndpointCard';
 
 export default function EndpointsPage() {
@@ -39,7 +39,7 @@ export default function EndpointsPage() {
   const fetchEndpoints = async () => {
     try {
       setIsLoading(true);
-      const response = await endpointsApi.getAll();
+      const response = await api.endpoints.getAll();
       setEndpoints(response.data);
     } catch (err) {
       toast.error('Failed to fetch endpoints');
@@ -56,60 +56,58 @@ export default function EndpointsPage() {
     e.preventDefault();
     
     try {
-      // Trim the values first
       const name = formData.name.trim();
       const url = formData.url.trim();
       const interval = Number(formData.interval);
 
-      // Validate name
       if (!name) {
         toast.error('Name is required');
         return;
       }
 
-      // Validate URL format
       let validUrl: URL;
       try {
         validUrl = new URL(url.startsWith('http') ? url : `https://${url}`);
         if (!validUrl.protocol || !validUrl.host) {
           throw new Error('Invalid URL');
         }
-      } catch (error) {
+      } catch {
         toast.error('Please enter a valid URL (e.g., https://example.com)');
         return;
       }
 
-      // Convert minutes to seconds and validate
       const intervalInSeconds = interval * 60;
       if (isNaN(intervalInSeconds) || intervalInSeconds < 10) {
         toast.error('Interval must be at least 10 seconds');
         return;
       }
 
-      const payload = {
+      const payload: Omit<Endpoint, 'id'> = {
         name,
         url: validUrl.href,
-        interval: intervalInSeconds
+        interval: intervalInSeconds,
+        status: 'unknown' as const,
+        userId: '',
+        pingLogs: []
       };
 
-      console.log('Submitting endpoint with payload:', payload);
-
       if (editingEndpoint) {
-        const response = await endpointsApi.update(editingEndpoint.id, payload);
-        console.log('Update response:', response.data);
+        await api.endpoints.update(editingEndpoint.id, {
+          name,
+          url: validUrl.href,
+          interval: intervalInSeconds
+        });
         toast.success('Endpoint updated successfully');
       } else {
-        const response = await endpointsApi.create(payload);
-        console.log('Create response:', response.data);
+        await api.endpoints.create(payload);
         toast.success('Endpoint created successfully');
       }
       setIsDialogOpen(false);
       resetForm();
       fetchEndpoints();
-    } catch (error: any) {
-      console.error('Error saving endpoint:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to save endpoint';
-      toast.error(errorMessage);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save endpoint';
+      toast.error(message);
     }
   };
 
@@ -118,17 +116,17 @@ export default function EndpointsPage() {
     setFormData({
       name: endpoint.name,
       url: endpoint.url,
-      interval: Math.floor(endpoint.interval / 60) // Convert seconds to minutes
+      interval: Math.floor(endpoint.interval / 60)
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async (endpoint: Endpoint) => {
     try {
-      await endpointsApi.delete(endpoint.id);
+      await api.endpoints.delete(endpoint.id);
       toast.success('Endpoint deleted successfully');
       fetchEndpoints();
-    } catch (err: unknown) {
+    } catch (err) {
       toast.error('Failed to delete endpoint');
     }
   };
