@@ -14,8 +14,8 @@ import EndpointCard from '@/components/ui/EndpointCard';
 
 export default function EndpointsPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingEndpoint, setEditingEndpoint] = useState<Endpoint | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -24,6 +24,8 @@ export default function EndpointsPage() {
     url: '',
     interval: 1
   });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedEndpoint, setSelectedEndpoint] = useState<Endpoint | null>(null);
 
   const resetForm = () => {
     setFormData({
@@ -36,15 +38,13 @@ export default function EndpointsPage() {
 
   const fetchEndpoints = async () => {
     try {
+      setIsLoading(true);
       const response = await endpointsApi.getAll();
-      const data = (response as ApiResponse<Endpoint[]>).data;
-      setEndpoints(data);
-    } catch (error) {
-      console.error('Error fetching endpoints:', error);
-      const errorMessage = handleApiError(error);
-      toast.error(errorMessage);
+      setEndpoints(response.data);
+    } catch (err) {
+      toast.error('Failed to fetch endpoints');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -123,17 +123,13 @@ export default function EndpointsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this endpoint?')) return;
-    
+  const handleDelete = async (endpoint: Endpoint) => {
     try {
-      await endpointsApi.delete(id);
+      await endpointsApi.delete(endpoint.id);
       toast.success('Endpoint deleted successfully');
       fetchEndpoints();
-    } catch (error) {
-      console.error('Error deleting endpoint:', error);
-      const errorMessage = handleApiError(error);
-      toast.error(errorMessage);
+    } catch (err: unknown) {
+      toast.error('Failed to delete endpoint');
     }
   };
 
@@ -142,7 +138,7 @@ export default function EndpointsPage() {
     endpoint.url.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="p-8">
         <div className="text-center text-muted-foreground">Loading...</div>
@@ -193,7 +189,7 @@ export default function EndpointsPage() {
               key={endpoint.id}
               endpoint={endpoint}
               onEdit={() => handleEdit(endpoint)}
-              onDelete={() => handleDelete(endpoint.id)}
+              onDelete={() => handleDelete(endpoint)}
             />
           ))}
         </div>

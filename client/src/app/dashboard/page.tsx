@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowUpIcon, ArrowDownIcon, Activity, Clock, Plus } from 'lucide-react';
 import { Endpoint, ApiResponse } from '@/types';
 import Navigation from '@/components/ui/Navigation';
+import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -39,14 +40,14 @@ export default function DashboardPage() {
   const downEndpoints = endpointsList.filter(endpoint => endpoint.status === 'down').length;
   const unknownEndpoints = endpointsList.filter(endpoint => endpoint.status === 'unknown').length;
 
-  const getStatusColor = (status: 'up' | 'down' | 'unknown') => {
-    switch (status) {
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
       case 'up':
         return 'text-green-500';
       case 'down':
         return 'text-red-500';
       default:
-        return 'text-yellow-500';
+        return 'text-gray-500';
     }
   };
 
