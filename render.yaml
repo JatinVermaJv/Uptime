@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: uptime-monitor-backend
+    env: node
+    buildCommand: npm install && npm run prisma:generate
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
+    healthCheckPath: /
+    autoDeploy: true
+
+databases:
+  - name: uptime-monitor-db
+    databaseName: uptime
+    user: uptime
+    plan: free 
