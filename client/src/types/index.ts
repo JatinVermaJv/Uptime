@@ -12,20 +12,28 @@ export interface Endpoint {
   interval: number;
   status: 'up' | 'down' | 'unknown';
   lastChecked?: Date;
-  pingLogs?: PingLog[];
+  pingLogs: PingLog[];
 }
 
 export interface PingLog {
   id: string;
   endpointId: string;
-  status: number;
-  success: boolean;
+  status: 'up' | 'down';
   responseTime: number;
-  error: string | null;
   createdAt: Date;
 }
 
 export interface ApiResponse<T> {
   data: T;
   message?: string;
+}
+
+export interface Settings {
+  id: string;
+  userId: string;
+  refreshInterval: number;
+  notifications: boolean;
+  darkMode: boolean;
+  createdAt: string;
+  updatedAt: string;
 } 

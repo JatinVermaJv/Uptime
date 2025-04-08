@@ -1,18 +1,61 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
+import { settings } from '@/services/api';
+import { handleApiError } from '@/services/api';
+import { Switch } from '@/components/ui/switch';
+
+interface Settings {
+  notifications: boolean;
+  emailAlerts: boolean;
+  refreshInterval: number;
+  darkMode: boolean;
+}
 
 export default function SettingsPage() {
-  const [settings, setSettings] = useState({
+  const [settingsData, setSettingsData] = useState<Settings>({
     notifications: true,
-    emailAlerts: true,
-    darkMode: true,
+    emailAlerts: false,
     refreshInterval: 60,
+    darkMode: false
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  const handleSettingChange = (key: string, value: any) => {
-    setSettings(prev => ({
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await settings.get();
+        setSettingsData(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch settings:', err);
+        setError(handleApiError(err));
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await settings.update(settingsData);
+      setSuccess('Settings updated successfully');
+      setError(null);
+    } catch (err) {
+      console.error('Failed to update settings:', err);
+      setError(handleApiError(err));
+      setSuccess(null);
+    }
+  };
+
+  const handleSettingChange = (key: keyof Settings, value: boolean | number) => {
+    setSettingsData(prev => ({
       ...prev,
       [key]: value,
     }));
@@ -37,7 +80,7 @@ export default function SettingsPage() {
                   <input
                     type="checkbox"
                     className="sr-only peer"
-                    checked={settings.notifications}
+                    checked={settingsData.notifications}
                     onChange={(e) => handleSettingChange('notifications', e.target.checked)}
                   />
                   <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -53,7 +96,7 @@ export default function SettingsPage() {
                   <input
                     type="checkbox"
                     className="sr-only peer"
-                    checked={settings.emailAlerts}
+                    checked={settingsData.emailAlerts}
                     onChange={(e) => handleSettingChange('emailAlerts', e.target.checked)}
                   />
                   <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -71,15 +114,11 @@ export default function SettingsPage() {
                   <h3 className="text-sm font-medium text-white">Dark Mode</h3>
                   <p className="text-sm text-gray-400">Use dark theme for the application</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="sr-only peer"
-                    checked={settings.darkMode}
-                    onChange={(e) => handleSettingChange('darkMode', e.target.checked)}
-                  />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
+                <Switch
+                  checked={settingsData.darkMode}
+                  onChange={(checked) => handleSettingChange('darkMode', checked)}
+                  className="mt-1"
+                />
               </div>
 
               <div>
@@ -89,7 +128,7 @@ export default function SettingsPage() {
                 <input
                   type="number"
                   id="refreshInterval"
-                  value={settings.refreshInterval}
+                  value={settingsData.refreshInterval}
                   onChange={(e) => handleSettingChange('refreshInterval', Number(e.target.value))}
                   className="input-field mt-1"
                   min="30"
@@ -106,10 +145,7 @@ export default function SettingsPage() {
         {/* Save Button */}
         <div className="flex justify-end">
           <button
-            onClick={() => {
-              // TODO: Implement save functionality
-              console.log('Saving settings:', settings);
-            }}
+            onClick={handleSubmit}
             className="btn-primary"
           >
             Save Changes
